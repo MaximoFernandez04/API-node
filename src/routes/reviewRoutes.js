@@ -20,6 +20,81 @@ reviewRoutes.post("/",authenticateToken, async(req,res)=>{
     }
 })
 
+reviewRoutes.get("/top", async(req, res)=>{
+    console.log("entree")
+  try {
+    const topReviews = await Review.aggregate([
+      {
+        $group: {
+          _id: "$producto", 
+          promedio: { $avg: "$rating" },
+          totalResenas: { $sum: 1 } 
+        }
+      },
+      {
+        $sort: { promedio: -1 } 
+      },
+      {
+        $lookup: {
+          from: "products", 
+          localField: "_id",
+          foreignField: "_id",
+          as: "producto"
+        }
+      },
+      {
+        $unwind: "$producto"
+      },
+      {
+        $project: {
+          _id: 0,
+          productoId: "$producto._id",
+          nombre: "$producto.nombre",
+          promedio: 1,
+          totalResenas: 1
+        }
+      }
+    ]);
+
+    res.json(topReviews);
+  } catch (error) {
+    res.status(500).json({ message: "Error al obtener top productos", error: error.message });
+  }
+});
+
+
+reviewRoutes.post("/", authenticateToken, async (req, res) => {
+  const { productoId, calificacion, comentario } = req.body;
+  const usuarioId = req.user.id;
+
+  try {
+    
+    const compra = await Order.findOne({
+      usuarioId,
+      "items.productoId": productoId,
+      estado: "enviado" 
+    });
+
+    if (!compra) {
+      return res.status(403).json({ message: "No puedes reseñar un producto que no compraste" });
+    }
+
+    const nuevaResena = await Review.create({
+      usuarioId,
+      productoId,
+      calificacion,
+      comentario
+    });
+
+    res.status(201).json({
+      message: "Reseña creada correctamente",
+      reseña: nuevaResena
+    });
+  } catch (error) {
+    res.status(500).json({ message: "Error al crear reseña", error: error.message });
+  }
+});
+
 reviewRoutes.get("/:productId", authenticateToken, async(req, res)=>{
     try {
         const {productId} = req.params
@@ -34,4 +109,5 @@ reviewRoutes.get("/:productId", authenticateToken, async(req, res)=>{
         res.status(500).json({ message: `Error al traer la review: ${error.message}` });
     }
     
-})
+});
+
