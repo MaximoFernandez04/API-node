@@ -79,3 +79,36 @@ productRoutes.get("/top", async (req, res) => {
   }
 });
 //PATCH /api/productos/:id/stock → actualizar stock.
+
+productRoutes.patch("/:id/stock", authenticateToken,verifyAdmin,async (req, res) => {
+  const { id } = req.params;
+  const { stock } = req.body;
+
+  if (stock === undefined) {
+    return res.status(400).json({ message: "Debe enviar la cantidad de stock" });
+  }
+
+  try {
+    const producto = await Product.findById(id);
+
+    if (!producto) {
+      return res.status(404).json({ message: "Producto no encontrado" });
+    }
+
+    producto.stock = stock;
+    await producto.save();
+
+    res.json({
+      message: "Stock actualizado correctamente",
+      producto: {
+        id: producto._id,
+        nombre: producto.nombre,
+        stock: producto.stock
+      }
+    });
+  } catch (error) {
+    res.status(500).json({ message: `Error al actualizar stock ${error}`});
+  }
+});
+
+
