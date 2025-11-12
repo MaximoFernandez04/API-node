@@ -21,7 +21,6 @@ reviewRoutes.post("/",authenticateToken, async(req,res)=>{
 })
 
 reviewRoutes.get("/top", async(req, res)=>{
-    console.log("entree")
   try {
     const topReviews = await Review.aggregate([
       {
@@ -111,3 +110,60 @@ reviewRoutes.get("/:productId", authenticateToken, async(req, res)=>{
     
 });
 
+//PATCH
+reviewRoutes.patch("/:id", authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const cambios = req.body;
+    const review = await Review.findById(id);
+
+    if (!review) {
+      return res.status(404).json({ message: "Reseña no encontrada" });
+    }
+
+    if (String(review.usuarioId) !== String(req.user.id) && req.user.rol !== "admin") {
+      return res.status(403).json({ message: "No autorizado" });
+    }
+
+    Object.assign(review, cambios);
+    await review.save();
+
+    res.status(200).json({ message: "Reseña actualizada", review });
+  } catch (error) {
+    res.status(500).json({ message: `Error al actualizar reseña: ${error.message}` });
+  }
+});
+
+//DELETE
+
+reviewRoutes.delete("/:id", authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const review = await Review.findById(id);
+    if (!review) {
+      return res.status(404).json({ message: "Reseña no encontrada" });
+    }
+  
+    const esPropietario = String(review.usuario) === String(req.user.id);
+    const esAdmin = req.user.rol === "admin";
+    
+    if (!esPropietario && !esAdmin) {
+      return res.status(403).json({ message: "No autorizado para eliminar esta reseña" });
+    }
+    
+    const reviewEliminada = await Review.findByIdAndDelete(id);
+
+    if (!reviewEliminada) {
+      return res.status(404).json({ message: "No se pudo eliminar la reseña" });
+    }
+
+    res.status(200).json({ message: "Reseña eliminada correctamente" });
+
+  } catch (error) {
+    console.error("Error al eliminar reseña:", error);
+    res.status(500).json({
+      message: `Error al eliminar la reseña: ${error?.message || "Error desconocido"}`
+    });
+  }
+});

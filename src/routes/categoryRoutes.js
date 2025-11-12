@@ -45,3 +45,28 @@ categoryRoutes.get("/stats", async(req,res)=>{
         res.status(500).json({message: `Error en el get de categories: ${error}`})
     }
 })
+
+// PATCH(admin)
+categoryRoutes.patch("/:id", authenticateToken, verifyAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const cambios = req.body;
+    const categoriaActualizada = await Category.findByIdAndUpdate(id, cambios, { new: true });
+    if (!categoriaActualizada) return res.status(404).json({ message: "Categoria no encontrada" });
+    res.status(200).json({ message: "Categoria actualizada", categoria: categoriaActualizada });
+  } catch (error) {
+    res.status(500).json({ message: `Error al actualizar categoria: ${error.message}` });
+  }
+});
+
+// DELETE(admin)
+categoryRoutes.delete("/:id", authenticateToken, verifyAdmin, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const categoriaEliminada = await Category.findByIdAndDelete(id);
+    if (!categoriaEliminada) return res.status(404).json({ message: "Categoria no encontrada" });
+    res.status(200).json({ message: "Categoria eliminada correctamente" });
+  } catch (error) {
+    res.status(500).json({ message: `Error al eliminar categoria: ${error.message}` });
+  }
+});

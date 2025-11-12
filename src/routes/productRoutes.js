@@ -57,6 +57,7 @@ productRoutes.get("/filter", async (req, res) => {
     res.status(500).json({ message: `Error en el filtro de productos: ${error.message}` });
   }
 });
+
 //GET /api/productos/top → productos más reseñados
 productRoutes.get("/top", async (req, res) => {
   try {
@@ -78,8 +79,8 @@ productRoutes.get("/top", async (req, res) => {
     });
   }
 });
-//PATCH /api/productos/:id/stock → actualizar stock.
 
+//PATCH /api/productos/:id/stock → actualizar stock.
 productRoutes.patch("/:id/stock", authenticateToken,verifyAdmin,async (req, res) => {
   const { id } = req.params;
   const { stock } = req.body;
@@ -111,4 +112,22 @@ productRoutes.patch("/:id/stock", authenticateToken,verifyAdmin,async (req, res)
   }
 });
 
+//DELETE USUARIO :ID
+
+productRoutes.delete("/:id", authenticateToken, verifyAdmin ,async(req, res)=>{
+  try{
+    const {id} = req.params;
+
+    const productoEliminado = await Product.findByIdAndDelete(id);
+
+    if(!productoEliminado){
+      return res.status(404).json({ message: "Producto no encontrado" });
+    }
+    res.status(200).json({ message: "Producto eliminado correctamente" });
+
+  }catch(error){
+
+    res.status(500).json({message: `Error al eliminar el producto ${error.message}`})
+  }
+})
 

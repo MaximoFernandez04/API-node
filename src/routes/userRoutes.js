@@ -1,9 +1,8 @@
-import express from "express"
-import 'dotenv/config'
+import express from "express";
+import 'dotenv/config';
 import { crearUsuario, login } from "../controllers/userController.js";
-import {User} from "../models/user.js"
-import {Cart} from "../models/cart.js"
-import { hashPassword } from "../services/password.service.js";
+import {User} from "../models/user.js";
+import {Cart} from "../models/cart.js";
 import { verifyAdmin, verifyToken } from "../services/auth.service.js";
 
 
@@ -22,7 +21,7 @@ export const authenticateToken = (req, res, next) => {
     }
 };
 
-//REGISTRO PUBLICO
+//REGISTRO PUBLICO- No se necesita token 
 userRoutes.post("/register", async (req, res) => {
   try {
     const { nombre, email, contrasena, perfil } = req.body;
@@ -119,3 +118,22 @@ userRoutes.delete("/:id",authenticateToken,verifyAdmin, async(req,res)=>{
     const cart = await Cart.deleteOne({usuarioId: userDelete._id}) 
     res.status(200).json({message: "Eliminado correctamente"})
 })
+
+//PATCH
+userRoutes.patch("/:id", authenticateToken, async (req, res) => {
+  try {
+    const { id } = req.params;
+    const cambios = req.body;
+
+    if (String(req.user.id) !== String(id) && req.user.rol !== "admin") {
+      return res.status(403).json({ message: "No autorizado" });
+    }
+
+    const userActualizado = await User.findByIdAndUpdate(id, cambios, { new: true });
+    if (!userActualizado) return res.status(404).json({ message: "Usuario no encontrado" });
+
+    res.status(200).json({ message: "Usuario actualizado", user: userActualizado });
+  } catch (error) {
+    res.status(500).json({ message: `Error al actualizar usuario: ${error.message}` });
+  }
+});

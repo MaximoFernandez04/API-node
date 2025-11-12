@@ -87,3 +87,20 @@ orderRoutes.get("/stats", authenticateToken, verifyAdmin, async (req, res) => {
     res.status(500).json({ message: `Error al obtener estadísticas: ${error.message}` });
   }
 });
+
+//DELETE
+
+orderRoutes.delete("/:id", authenticateToken, verifyAdmin, async(req,res)=>{
+  
+  try {
+    const {id} = req.params;
+    const ordenEliminada = await Order.findByIdAndDelete(id)
+
+    if(!ordenEliminada){
+      return res.status(404).json({message: "Orden no encontrada"})
+    }
+    res.status(200).json({message: "Orden eliminada correctamente"})
+  } catch (error) {
+     res.status(500).json({message: `Error al eliminar la orden ${error.message}`})
+  }
+  })
