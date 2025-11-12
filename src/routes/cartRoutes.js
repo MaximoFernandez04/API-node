@@ -31,8 +31,6 @@ cartRoutes.get("/:usuarioId", async(req, res)=>{
       nombre: item.productoId.nombre,
       precioUnitario: item.productoId.precio,
       cantidad: item.cantidad
-      //subtotal: item.productoId.precio * item.cantidad
-      
     }))
 
      res.status(200).json({usuarioId, productos});
@@ -69,6 +67,113 @@ try {
   res.status(500).json({ message: "Error al obtener el carrito", error });
 }
  
+})
+
+//PATCH
+
+cartRoutes.patch("/:usuarioId", authenticateToken, async (req, res) => {
+  try {
+    const { usuarioId } = req.params;
+    const { productoId, cantidad } = req.body;
+
+    if (String(req.user.id) !== String(usuarioId) && req.user.rol !== "admin") {
+      return res.status(403).json({ message: "No autorizado para modificar este carrito" });
+    }
+
+    const cart = await Cart.findOne({ usuarioId });
+    if (!cart) {
+      return res.status(404).json({ message: "Carrito no encontrado" });
+    }
+
+    const itemIndex = cart.items.findIndex(
+      (item) => String(item.productoId) === String(productoId)
+    );
+
+    if (itemIndex > -1) {
+      if (cantidad > 0) {
+        cart.items[itemIndex].cantidad = cantidad;
+      } else {
+        
+        cart.items.splice(itemIndex, 1);
+      }
+    } else {
+      if (cantidad > 0) {
+        cart.items.push({ productoId, cantidad });
+      } else {
+        return res.status(400).json({ message: "Cantidad inválida" });
+      }
+    }
+
+    await cart.save();
+
+    res.status(200).json({
+      message: "Carrito actualizado correctamente",
+      cart,
+    });
+  } catch (error) {
+    console.error("Error al actualizar carrito:", error);
+    res.status(500).json({
+      message: `Error al actualizar carrito: ${error.message}`,
+    });
+  }
+});
 
 
+//DELETE producto especifico
+cartRoutes.delete("/:usuarioId/:productoId", authenticateToken, async (req, res) => {
+  try {
+    const { usuarioId } = req.params;
+    const { productoId } = req.body;
+  
+    if (String(req.user.id) !== String(usuarioId) && req.user.rol !== "admin") {
+      return res.status(403).json({ message: "No autorizado para eliminar este carrito" });
+    }
+
+    const cart = await Cart.findOne({ usuarioId });
+    if (!cart) {
+      return res.status(404).json({ message: "Carrito no encontrado" });
+    }
+
+    if (productoId) {
+      cart.items = cart.items.filter(
+        (item) => String(item.productoId) !== String(productoId)
+      );
+      await cart.save();
+      return res.status(200).json({
+        message: "Producto eliminado del carrito",
+        cart,
+      });
+    }
+  } catch (error) {
+    console.error("Error al eliminar carrito:", error);
+    res.status(500).json({
+      message: `Error al eliminar carrito: ${error.message}`,
+    });
+  }
+});
+
+//DELETE eliminar todo el carrito
+
+cartRoutes.delete("/:usuarioId", authenticateToken, async(req, res)=>{
+  try {
+    const {usuarioId} = req.params;
+
+  if (String(req.user.id) !== String(usuarioId) && req.user.rol !== "admin") {
+      return res.status(403).json({ message: "No autorizado para eliminar este carrito" });
+    }
+
+    const cart = await Cart.findOne({ usuarioId });
+    if (!cart) {
+      return res.status(404).json({ message: "Carrito no encontrado" });
+    }
+
+
+   await Cart.findOneAndDelete({ usuarioId });
+
+    res.status(200).json({ message: "Carrito eliminado correctamente" });
+  } catch (error) {
+    console.error("Error al eliminar carrito:", error);
+    res.status(500).json({
+      message: `Error al eliminar carrito: ${error.message}`})
+  }
 })
